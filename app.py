@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from PIL import Image, ImageOps
 import os
@@ -9,127 +10,144 @@ st.set_page_config(page_title="TripAja Agency - Eksplorasi Indonesia", page_icon
 # --- SUNTIKAN CSS CUSTOM ---
 st.markdown("""
     <style>
-    .block-container { padding-top: 2rem; }
-    .harga-text { color: #2e8b57; font-size: 20px; font-weight: bold; }
+    .block-container { padding-top: 1.5rem; }
+    .harga-text { color: #2e8b57; font-size: 22px; font-weight: 800; }
     .harga-kecil { color: #2e8b57; font-size: 16px; font-weight: bold; margin-bottom: 0px;}
-    .stTabs [data-baseweb="tab-list"] { gap: 16px; flex-wrap: wrap;}
-    .stTabs [data-baseweb="tab"] { height: 50px; white-space: pre-wrap; background-color: transparent; border-radius: 4px 4px 0px 0px; padding: 10px 16px; font-weight: 600; }
+    div[data-testid="stTabs"] button {
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        padding: 10px 20px !important;
+    }
+    /* Hover effect untuk widget cuaca biru */
+    .widget-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .widget-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2) !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 # --- FUNGSI BANTUAN ICONIFY ---
 def iconify(icon_name, color="#333", size=24):
-    return f'<img src="https://api.iconify.design/{icon_name}.svg?color={color.replace("#", "%23")}" width="{size}" height="{size}" style="vertical-align: middle; margin-right: 8px;">'
+    return f'<img src="https://api.iconify.design/{icon_name}.svg?color={color.replace("#", "%23")}" width="{size}" height="{size}" style="vertical-align: middle; margin-right: 6px;">'
 
-# --- DATABASE DESTINASI (BUG FIX: URL VIDEO ASLI & STABILISASI KOORDINAT) ---
+# --- DATABASE DESTINASI ---
 DESTINASI = {
     "Bali": {
-        "highlight": "Pulau Dewata, menawarkan perpaduan sempurna pantai eksotis, pura kuno yang mistis, budaya kental, dan kehidupan malam modern.",
+        "highlight": "Pulau Dewata, menawarkan perpaduan sempurna antara pantai-pantai eksotis dengan pasir putih dan ombak memikat, deretan pura kuno yang sarat nuansa mistis dan spiritual, serta budaya lokal yang masih sangat kental dan terjaga hingga kini. Tidak hanya itu, Bali juga menghadirkan kehidupan malam modern yang semarak, lengkap dengan beach club, kafe estetik, hingga hiburan kelas dunia.",
         "deskripsi_lengkap": "Bali tidak pernah gagal memukau. Kunjungi Pura Uluwatu di tebing, saksikan Tari Kecak, atau jelajahi Teras Sawah Tegalalang. Bagi pecinta pantai, Nusa Penida menawarkan tebing Kelingking yang ikonik. Nikmati juga kuliner lezat khas Bali.",
         "cover_img": "assets/bali.jpg",
         "high_res_gallery": ["assets/bali1.jpg", "assets/bali2.jpg", "assets/bali3.jpg"],
         "estimasi_biaya_katalog": "Rp 3.500.000 / org",
         "biaya_dasar_int": 3500000, 
         "tiket_masuk_orang": 75000,
-        "video_url": "https://youtu.be/sY6BGVE-PBE",
+        "video_url": "https://www.youtube.com/watch?v=sY6BGVE-PBE",
         "itinerary": [
             "Hari 1: Tiba di Ngurah Rai, Check-in Hotel, Sunset di Pantai Kuta & Makan Malam Seafood di Jimbaran.",
             "Hari 2: Eksplorasi Ubud (Monkey Forest, Tegalalang), Kunjungan ke Pura Tirta Empul.",
             "Hari 3: Perjalanan ke Nusa Penida (Kelingking Beach, Broken Beach), Kembali ke Bali & Belanja Oleh-oleh."
         ],
-        "koordinat": {"lat": [-8.409518], "lon": [115.188919]},
-        "waktu_terbaik": "April - Oktober (Musim Kemarau)",
-        "cuaca": "Tropis Cerah, 27°C - 30°C"
+        "koordinat": {"lat": -8.409518, "lon": 115.188919},
+        "waktu_terbaik": "April - Oktober",
+        "cuaca": "Tropis Cerah, 27°C - 30°C",
+        "cuaca_ikon": "fluent:weather-sunny-28-filled"
     },
     "Yogyakarta": {
-        "highlight": "Pusat budaya Jawa dengan kemegahan sejarah Candi Borobudur, kehangatan Malioboro, dan kuliner legendaris.",
+        "highlight": "Pusat budaya Jawa yang kaya akan nilai sejarah, seni, dan tradisi yang masih hidup dalam keseharian masyarakatnya. Yogyakarta menghadirkan pesona kemegahan Candi Borobudur yang mendunia, kehangatan suasana Malioboro yang selalu ramai dan penuh cerita, serta ragam kuliner legendaris seperti gudeg yang menggugah selera. Selain itu, kota ini juga menawarkan pengalaman autentik melalui keraton, pertunjukan seni.",
         "deskripsi_lengkap": "Eksplorasi Malioboro dengan andong, kunjungi Keraton Yogyakarta, dan saksikan matahari terbit di Candi Borobudur. Jangan lewatkan petualangan Goa Jomblang atau keindahan Gumuk Pasir Parangkusumo.",
         "cover_img": "assets/jogja.jpg",
         "high_res_gallery": ["assets/jogja1.jpg", "assets/jogja2.jpg", "assets/jogja3.jpg"],
         "estimasi_biaya_katalog": "Rp 1.500.000 / org",
         "biaya_dasar_int": 1500000,
         "tiket_masuk_orang": 50000,
-        "video_url": "https://youtu.be/0Fi4JeizyZg",
+        "video_url": "https://youtu.be/0Fi4JeizyZg?si=Mx-TqQ5QwUbWdkOB",
         "itinerary": [
             "Hari 1: Tiba di Stasiun/Bandara, Makan Gudeg Mbah Lindu, Jalan-jalan santai & Belanja di Malioboro.",
             "Hari 2: Sunrise di Candi Borobudur, Wisata VW Safari Magelang, Sore di Candi Prambanan.",
             "Hari 3: Kunjungan ke Keraton Yogyakarta & Tamansari, Beli Bakpia Pathok, Pulang."
         ],
-        "koordinat": {"lat": [-7.795580], "lon": [110.369490]},
+        "koordinat": {"lat": -7.795580, "lon": 110.369490},
         "waktu_terbaik": "Mei - September",
-        "cuaca": "Hangat, 26°C - 32°C"
+        "cuaca": "Hangat Berawan, 26°C - 32°C",
+        "cuaca_ikon": "fluent:weather-partly-cloudy-day-48-filled"
     },
     "Lombok": {
-        "highlight": "Keindahan alam yang menenangkan, dengan Gunung Rinjani yang megah, tiga Gili mempesona, dan Sirkuit Mandalika.",
+        "highlight": "Keindahan alam yang menenangkan dengan suasana yang masih relatif lebih tenang dibandingkan destinasi populer lainnya. Pulau ini menghadirkan kemegahan Gunung Rinjani yang menjadi favorit para pendaki, lengkap dengan panorama danau Segara Anak yang memukau. Selain itu, pesona tiga Gili—Gili Trawangan, Gili Meno, dan Gili Air—menawarkan air laut jernih, pasir putih, dan suasana tropis yang sempurna untuk relaksasi.",
         "deskripsi_lengkap": "Gili Trawangan untuk bersantai dan snorkeling, menikmati pemandangan bawah laut. Jelajahi juga Pantai Pink yang unik atau kunjungi Desa Adat Sade untuk belajar budaya Sasak asli.",
         "cover_img": "assets/lombok.jpg",
         "high_res_gallery": ["assets/lombok1.jpg", "assets/lombok2.jpg", "assets/lombok3.jpg"],
         "estimasi_biaya_katalog": "Rp 2.800.000 / org",
         "biaya_dasar_int": 2800000,
         "tiket_masuk_orang": 40000,
-        "video_url": "https://youtu.be/379EEoRIbIs",
+        "video_url": "https://www.youtube.com/watch?v=379EEoRIbIs",
         "itinerary": [
             "Hari 1: Tiba di Bandara, Eksplorasi Sirkuit Mandalika & Bukit Merese, Check-in Hotel.",
             "Hari 2: Penyeberangan ke Gili Trawangan, Snorkeling Trip (Patung Bawah Laut), Bersepeda keliling pulau.",
             "Hari 3: Kunjungan ke Desa Adat Sade, Belanja Mutiara & Tenun Lombok, Persiapan Pulang."
         ],
-        "koordinat": {"lat": [-8.583333], "lon": [116.116667]},
-        "waktu_terbaik": "Juli - Agustus (Ideal untuk pendakian)",
-        "cuaca": "Tropis, 25°C - 31°C"
+        "koordinat": {"lat": -8.583333, "lon": 116.116667},
+        "waktu_terbaik": "Juli - Agustus",
+        "cuaca": "Tropis Cerah, 25°C - 31°C",
+        "cuaca_ikon": "fluent:weather-sunny-28-filled"
     },
     "Bandung": {
-        "highlight": "Kota Kembang dengan udara sejuk, surga belanja, kuliner estetik, dan wisata alam pegunungan yang asri.",
+        "highlight": "Kota Kembang yang dikenal dengan udara sejuk khas pegunungan dan suasana yang nyaman untuk berlibur. Bandung merupakan surga belanja dengan berbagai factory outlet dan distro kreatif, sekaligus destinasi kuliner estetik yang terus berkembang mengikuti tren anak muda. Keindahan alamnya pun tak kalah memikat, mulai dari kawasan Lembang yang asri hingga panorama kawah di Kawah Putih yang eksotis.",
         "deskripsi_lengkap": "Kunjungi Kawah Putih yang memukau dengan danau vulkanik sulfurnya, Tangkuban Perahu, atau bersantai di Ranca Upas berinteraksi dengan rusa. Nikmati suasana sejuk Lembang dan berbagai kafe estetik di kawasan bersejarah Braga.",
         "cover_img": "assets/bandung.jpg",
         "high_res_gallery": ["assets/bandung1.jpg", "assets/bandung2.jpg", "assets/bandung3.jpg"],
         "estimasi_biaya_katalog": "Rp 1.200.000 / org",
         "biaya_dasar_int": 1200000,
         "tiket_masuk_orang": 35000,
-        "video_url": "https://www.youtube.com/watch?v=F3zH94m9xBE", # Diganti dengan URL valid
+        "video_url": "https://youtu.be/2JW5B6xLAEA?si=tNfC39RxkOEDTAcC",
         "itinerary": [
             "Hari 1: Tiba di Bandung, Wisata sejarah & ngopi di Jalan Braga, Makan malam di Puncak Ciumbuleuit (Punclut).",
             "Hari 2: Eksplorasi Lembang (Farmhouse / Floating Market), Interaksi dengan Rusa di Ranca Upas.",
             "Hari 3: Wisata Kawah Putih Ciwidey, Belanja di Cibaduyut / Factory Outlet, Kembali ke kota asal."
         ],
-        "koordinat": {"lat": [-6.917464], "lon": [107.619123]},
-        "waktu_terbaik": "Sepanjang Tahun (Hindari musim hujan ekstrim Des-Feb)",
-        "cuaca": "Sejuk Pegunungan, 20°C - 26°C"
+        "koordinat": {"lat": -6.917464, "lon": 107.619123},
+        "waktu_terbaik": "Sepanjang Tahun",
+        "cuaca": "Sejuk Pegunungan, 20°C - 26°C",
+        "cuaca_ikon": "fluent:weather-rain-showers-day-24-filled"
     },
     "Surabaya": {
-        "highlight": "Kota Pahlawan yang kaya nilai sejarah, tata kota modern, taman-taman asri, dan aneka kuliner khas Jawa Timur yang pedas & gurih.",
+        "highlight": "Kota Pahlawan yang sarat akan nilai sejarah perjuangan bangsa, sekaligus berkembang menjadi kota metropolitan dengan tata kota yang modern dan tertata rapi. Ikon bersejarah seperti Tugu Pahlawan menjadi simbol semangat perjuangan, sementara ruang publik seperti Taman Bungkul menghadirkan suasana hijau yang nyaman di tengah hiruk-pikuk kota. Surabaya juga dikenal dengan ragam kuliner khas Jawa Timur yang kaya rasa",
         "deskripsi_lengkap": "Jelajahi ikon Jembatan Suramadu yang menghubungkan Jawa dan Madura, Monumen Kapal Selam, dan kawasan bersejarah Tugu Pahlawan. Jangan lupa mencicipi Rawon Kalkulator, Rujak Cingur, dan Sate Kelopo yang legendaris.",
         "cover_img": "assets/surabaya.jpg",
         "high_res_gallery": ["assets/surabaya1.jpg", "assets/surabaya2.jpg", "assets/surabaya3.jpg"],
         "estimasi_biaya_katalog": "Rp 1.400.000 / org",
         "biaya_dasar_int": 1400000,
         "tiket_masuk_orang": 25000,
-        "video_url": "https://www.youtube.com/watch?v=sY6BGVE-PBE", # Diganti dengan URL valid
+        "video_url": "https://youtu.be/h2MZNZuvcLU?si=t1ogHu0MSprBFxcq",
         "itinerary": [
             "Hari 1: Tiba di Surabaya, Kunjungan ke Tugu Pahlawan & Museum 10 Nopember, Makan Siang Rujak Cingur.",
             "Hari 2: Menjelajahi Monumen Kapal Selam (Monkasel), Santai di Taman Bungkul, Perjalanan malam melewati Jembatan Suramadu.",
             "Hari 3: Beli oleh-oleh Spikoe Resep Kuno & Sambal Bu Rudy, Kuliner Lontong Balap, Pulang."
         ],
-        "koordinat": {"lat": [-7.250445], "lon": [112.768845]},
+        "koordinat": {"lat": -7.250445, "lon": 112.768845},
         "waktu_terbaik": "Mei - November",
-        "cuaca": "Panas Kota, 28°C - 34°C"
+        "cuaca": "Panas & Terik, 28°C - 34°C",
+        "cuaca_ikon": "fluent:weather-sunny-high-24-filled"
     },
     "Papua": {
-        "highlight": "Surga bahari Raja Ampat di ujung timur Indonesia dengan gugusan pulau karang karst mempesona dan keanekaragaman hayati bawah laut kelas dunia.",
+        "highlight": "Surga tersembunyi di ujung timur Indonesia yang menawarkan keindahan alam luar biasa dan masih sangat alami. Kawasan Raja Ampat menjadi ikon wisata bahari dunia dengan gugusan pulau karst yang dramatis, air laut sebening kristal, serta keanekaragaman hayati bawah laut yang termasuk terkaya di planet ini. Tidak hanya itu, Papua juga menyimpan kekayaan budaya lokal yang unik dan autentik",
         "deskripsi_lengkap": "Raja Ampat adalah impian setiap penyelam. Gugusan kepulauan Piaynemo dan Wayag menawarkan pemandangan dari atas bukit yang menakjubkan. Lakukan diving atau snorkeling untuk bertemu pari manta, hiu karang, dan terumbu karang yang masih sangat alami dan tak tersentuh.",
         "cover_img": "assets/papua.jpg",
         "high_res_gallery": ["assets/papua1.jpg", "assets/papua2.jpg", "assets/papua3.jpg"],
         "estimasi_biaya_katalog": "Rp 8.500.000 / org",
         "biaya_dasar_int": 8500000,
         "tiket_masuk_orang": 250000,
-        "video_url": "https://www.youtube.com/watch?v=379EEoRIbIs", # Diganti dengan URL valid
+        "video_url": "https://youtu.be/E8P8CW-fHy0?si=4NdjnPwnYsjeOmZa",
         "itinerary": [
             "Hari 1: Tiba di Sorong, Penyeberangan Kapal Feri ke Waisai (Raja Ampat), Check-in Resort/Homestay pinggir pantai.",
             "Hari 2: Trekking ke Puncak Piaynemo yang ikonik, Snorkeling di Arborek Village.",
             "Hari 3: Berenang bersama ikan Pari Manta di Manta Point, Menikmati sunset, Persiapan kembali ke Sorong."
         ],
-        "koordinat": {"lat": [-0.233333], "lon": [130.516667]},
-        "waktu_terbaik": "Oktober - April (Kondisi air terbaik untuk diving)",
-        "cuaca": "Tropis Lembab, 26°C - 31°C"
+        "koordinat": {"lat": -0.233333, "lon": 130.516667},
+        "waktu_terbaik": "Okt - April (Diving)",
+        "cuaca": "Tropis Lembab, 26°C - 31°C",
+        "cuaca_ikon": "fluent:weather-partly-cloudy-day-48-filled"
     }
 }
 
@@ -151,7 +169,7 @@ def tampilkan_gambar_rapi(path_gambar, target_width=800, target_height=450):
         except Exception:
             st.error(f"Gagal memuat {path_gambar}")
     else:
-        st.markdown(f"<div style='width:100%; height:200px; background-color:#e0e0e0; border-radius:10px; display:flex; align-items:center; justify-content:center;'>📸 {path_gambar} (Belum Ditambahkan)</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='width:100%; height:200px; background-color:#e0e0e0; border-radius:10px; display:flex; align-items:center; justify-content:center; color: gray;'>📸 {path_gambar} (Belum Ditambahkan)</div>", unsafe_allow_html=True)
 
 # --- HALAMAN LOGIN ---
 def halaman_login():
@@ -181,8 +199,8 @@ def halaman_login():
 
 # --- HALAMAN DASHBOARD UTAMA ---
 def render_dashboard_utama():
-    st.markdown(f"<h1>{iconify('fluent-emoji:airplane')} Eksplorasi Indonesia</h1>", unsafe_allow_html=True)
-    st.markdown("Temukan referensi perjalanan terbaik dan rencanakan impian liburan Anda.")
+    st.markdown(f"<h1>{iconify('mdi:compass-rose', size=36)} Eksplorasi Indonesia</h1>", unsafe_allow_html=True)
+    st.markdown("Temukan referensi perjalanan terbaik dan rencanakan impian liburan Anda bersama TripAja.")
     
     st.session_state.selected_destination = None
     search_query = st.text_input("🔍 Cari referensi wilayah (Contoh: Bali, Lombok, Bandung)...")
@@ -198,7 +216,7 @@ def render_dashboard_utama():
                 tampilkan_gambar_rapi(info["cover_img"], target_width=600, target_height=350)
                 st.markdown(f"<h3>{iconify('mdi:map-marker', color='#ff4b4b', size=28)} {nama}</h3>", unsafe_allow_html=True)
                 st.write(f"{info['highlight']}")
-                st.markdown(f"<p class='harga-text'>{iconify('mdi:wallet', color='#2e8b57')} Mulai dari {info['estimasi_biaya_katalog']}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p class='harga-text'>{iconify('mdi:wallet', color='#2e8b57', size=26)} Mulai dari {info['estimasi_biaya_katalog']}</p>", unsafe_allow_html=True)
                 
                 col_btn1, col_btn2 = st.columns(2)
                 with col_btn1:
@@ -224,7 +242,7 @@ def render_halaman_detail(dest_name):
         st.session_state.current_page = "main"
         st.rerun()
     
-    st.markdown(f"<h1>{iconify('mdi:compass-outline', size=40)} {dest_name}</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h1>{iconify('mdi:map-legend', size=40)} {dest_name}</h1>", unsafe_allow_html=True)
     st.markdown(f"*{dest['highlight']}*")
     st.markdown("---")
 
@@ -238,14 +256,40 @@ def render_halaman_detail(dest_name):
     ])
 
     with tab_overview:
-        st.markdown(f"<h3>Tentang Destinasi</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3>{iconify('mdi:information-outline', size=28)} Tentang Destinasi</h3>", unsafe_allow_html=True)
         st.write(dest["deskripsi_lengkap"])
+        st.write("<br>", unsafe_allow_html=True)
         
-        with st.container(border=True):
-            st.markdown(f"**{iconify('mdi:calendar-check', color='#ff8c00')} Waktu Terbaik Berkunjung:** {dest['waktu_terbaik']}")
-            st.markdown(f"**{iconify('mdi:weather-partly-cloudy', color='#1e90ff')} Prakiraan Cuaca Umum:** {dest['cuaca']}")
+        # --- UI/UX WIDGET CUACA & WAKTU (DIPERTAHANKAN WARNA BIRUNYA) ---
+        col_cuaca, col_waktu = st.columns(2)
+        
+        with col_cuaca:
+            st.markdown(f"""
+            <div class="widget-card" style="background: linear-gradient(135deg, #2b70e4 0%, #5a9bf5 100%); padding: 20px; border-radius: 12px; color: white; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <div style="flex: 1;">
+                    <p style="margin:0; font-size: 13px; font-weight: 600; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px;">Live Cuaca & Suhu</p>
+                    <h3 style="margin: 5px 0 0 0; color: white; font-size: 22px;">{dest['cuaca']}</h3>
+                </div>
+                <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 50%;">
+                    {iconify(dest['cuaca_ikon'], color='white', size=40)}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
             
-        st.markdown("<br>", unsafe_allow_html=True)
+        with col_waktu:
+            st.markdown(f"""
+            <div class="widget-card" style="background: linear-gradient(135deg, #1f5bbd 0%, #4686e6 100%); padding: 20px; border-radius: 12px; color: white; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <div style="flex: 1;">
+                    <p style="margin:0; font-size: 13px; font-weight: 600; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px;">Waktu Berkunjung Ideal</p>
+                    <h3 style="margin: 5px 0 0 0; color: white; font-size: 22px;">{dest['waktu_terbaik']}</h3>
+                </div>
+                <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 50%;">
+                    {iconify('mdi:calendar-check', color='white', size=40)}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        st.markdown("<br><br>", unsafe_allow_html=True)
         st.video(dest["video_url"])
 
     with tab_galeri:
@@ -268,26 +312,42 @@ def render_halaman_detail(dest_name):
                 st.rerun()
 
     with tab_peta:
-        st.markdown(f"<h3>Titik Koordinat {dest_name}</h3>", unsafe_allow_html=True)
-        st.markdown("Gunakan mouse Anda untuk memperbesar (*zoom*) atau menggeser peta di bawah ini.")
-        # BUG FIX: Menggunakan pandas DataFrame untuk menghindari error rendering peta di Streamlit
-        st.map(pd.DataFrame(dest["koordinat"]), zoom=8)
+        st.markdown(f"<h3>{iconify('mdi:google-maps', color='#4285F4', size=28)} Peta Google Maps: {dest_name}</h3>", unsafe_allow_html=True)
+        st.markdown("Jelajahi area sekitar, cari restoran terdekat, atau lihat review tempat wisata langsung dari peta ini.")
+        
+        lat = dest["koordinat"]["lat"]
+        lon = dest["koordinat"]["lon"]
+        map_html = f'''
+            <iframe 
+                width="100%" 
+                height="450" 
+                frameborder="0" 
+                scrolling="no" 
+                marginheight="0" 
+                marginwidth="0" 
+                src="https://maps.google.com/maps?q={lat},{lon}&t=&z=12&ie=UTF8&iwloc=&output=embed"
+                style="border-radius: 10px; border: 2px solid #e0e0e0;"
+            ></iframe>
+        '''
+        components.html(map_html, height=450)
 
     with tab_itinerary:
-        st.markdown(f"<h3>Rekomendasi Rencana Perjalanan (3 Hari)</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3>{iconify('mdi:clipboard-text-clock', size=28)} Rekomendasi Rencana Perjalanan (3 Hari)</h3>", unsafe_allow_html=True)
         for i, aktivitas in enumerate(dest["itinerary"]):
-            with st.expander(f"✨ Aktivitas {aktivitas.split(':')[0]}", expanded=True):
-                st.write(aktivitas.split(':')[1])
+            with st.expander(f"Hari ke-{i+1} : {aktivitas.split(':')[0].split(' ')[1]}", expanded=True):
+                st.write(f"✨ {aktivitas.split(':')[1]}")
                 
         st.markdown("---")
-        st.markdown(f"<h3>{iconify('mdi:check-all')} Checklist Bawaan Wajib</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3>{iconify('mdi:bag-checked', color='#ff8c00', size=28)} Checklist Bawaan Wajib</h3>", unsafe_allow_html=True)
         st.checkbox("Pakaian Nyaman & Jaket (Sesuai cuaca)")
         st.checkbox("Obat-obatan Pribadi")
         st.checkbox("Kamera / Powerbank")
         st.checkbox("Uang Tunai Cukup")
 
     with tab_kalkulator:
-        st.markdown("Hitung **estimasi biaya dasar** tiket masuk berdasarkan jumlah rombongan Anda.")
+        st.markdown(f"<h3>{iconify('mdi:calculator-variant', size=28)} Kalkulator Biaya Wisata Dasar</h3>", unsafe_allow_html=True)
+        st.markdown("Hitung estimasi biaya dasar tiket masuk berdasarkan jumlah rombongan Anda.")
+        
         col_calc_input, col_calc_res = st.columns([1, 1.5])
         with col_calc_input:
             with st.container(border=True):
@@ -310,10 +370,10 @@ def render_halaman_detail(dest_name):
                     eur = total_biaya_idr / 16800
                     st.markdown(f"<h2 class='harga-text'>€ {eur:,.2f}</h2>", unsafe_allow_html=True)
                     
-                st.caption(f"*Asumsi tiket wisata rata-rata: Rp {dest['tiket_masuk_orang']:,}/orang/hari. (Belum termasuk tiket pesawat/hotel).")
+                st.caption(f"*Asumsi tiket wisata rata-rata: Rp {dest['tiket_masuk_orang']:,}/orang/hari. (Belum termasuk akomodasi).")
 
     with tab_ulasan:
-        st.markdown(f"<h3>Ulasan Pengunjung</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3>{iconify('mdi:comment-star', color='#fbbc04', size=28)} Ulasan Pengunjung</h3>", unsafe_allow_html=True)
         
         kunci_ulasan = f"ulasan_db_{dest_name}"
         if kunci_ulasan not in st.session_state:
@@ -350,42 +410,49 @@ def render_halaman_detail(dest_name):
 
 # --- ROUTING APLIKASI UTAMA ---
 def render_page_flow():
-    st.sidebar.markdown(f"<h2>{iconify('mdi:account-circle', color='white', size=30)} {st.session_state.username}</h2>", unsafe_allow_html=True)
+    st.sidebar.markdown(f"<h2>{iconify('mdi:account-circle', size=30)} {st.session_state.username}</h2>", unsafe_allow_html=True)
     st.sidebar.markdown("---")
     
     menu = st.sidebar.radio(
-        "Menu Navigasi", 
-        ["🏠 Dashboard", "🎬 Cinematic", "👤 Profil"]
+        "Menu Navigasi Utama", 
+        ["🏠 Dashboard", "🎬 Galeri Cinematic", "👤 Profil & Preferensi"]
     )
     
     st.sidebar.markdown("---")
-    if st.sidebar.button("Logout", use_container_width=True):
+    if st.sidebar.button("Keluar / Logout", use_container_width=True):
         st.session_state.logged_in = False
         st.session_state.favorit = [] 
         st.session_state.current_page = "main"
         st.rerun()
 
+    # Konten Utama
     if menu == "🏠 Dashboard":
         if st.session_state.current_page == "main":
             render_dashboard_utama()
         elif st.session_state.current_page == "detail":
             render_halaman_detail(st.session_state.selected_destination)
             
-    elif menu == "🎬 Cinematic":
-        st.title("🎬 Galeri Video")
-        for nama, info in DESTINASI.items():
-            st.subheader(nama)
-            st.video(info["video_url"])
+    elif menu == "🎬 Galeri Cinematic":
+        st.markdown(f"<h1>{iconify('mdi:movie-open-play', size=36)} Galeri Video Cinematic</h1>", unsafe_allow_html=True)
+        st.write("Rasakan suasana destinasi impian Anda melalui kumpulan video cinematic.")
+        st.markdown("---")
+        
+        col_vid1, col_vid2 = st.columns(2)
+        for i, (nama, info) in enumerate(DESTINASI.items()):
+            with (col_vid1 if i % 2 == 0 else col_vid2):
+                st.markdown(f"<h4>{nama}</h4>", unsafe_allow_html=True)
+                st.video(info["video_url"])
+                st.write("")
             
-    elif menu == "👤 Profil":
-        st.markdown(f"<h1>{iconify('mdi:card-account-details-outline', size=40)} Profil & Preferensi</h1>", unsafe_allow_html=True)
+    elif menu == "👤 Profil & Preferensi":
+        st.markdown(f"<h1>{iconify('mdi:card-account-details', size=36)} Profil & Preferensi</h1>", unsafe_allow_html=True)
         st.write(f"Selamat datang di panel kontrol Anda, **{st.session_state.username}**!")
         st.markdown("---")
         
         col_fav, col_fitur = st.columns([1.5, 1])
         
         with col_fav:
-            st.markdown(f"<h3>{iconify('mdi:heart', color='#ff4b4b')} Destinasi Favorit</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3>{iconify('mdi:heart', color='#ff4b4b', size=28)} Destinasi Favorit</h3>", unsafe_allow_html=True)
             if not st.session_state.favorit:
                 st.info("Anda belum memiliki destinasi favorit. Yuk cari di Dashboard!")
             else:
@@ -400,12 +467,12 @@ def render_page_flow():
                                 st.markdown(f"<h4>{fav}</h4>", unsafe_allow_html=True)
                                 st.markdown(f"<p class='harga-kecil'>{info['estimasi_biaya_katalog']}</p>", unsafe_allow_html=True)
                                 st.write("") 
-                                if st.button(f"❌ Hapus dari Favorit", key=f"del_{fav}"):
+                                if st.button(f"❌ Hapus", key=f"del_{fav}"):
                                     st.session_state.favorit.remove(fav)
                                     st.rerun()
                                     
         with col_fitur:
-            st.markdown(f"<h3>{iconify('mdi:piggy-bank', color='#ffb6c1')} Planner Tabungan</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3>{iconify('mdi:piggy-bank', color='#ffb6c1', size=28)} Planner Tabungan</h3>", unsafe_allow_html=True)
             with st.container(border=True):
                 st.write("Mulai rencanakan tabungan untuk mewujudkan liburan ke destinasi impian Anda.")
                 
@@ -413,13 +480,14 @@ def render_page_flow():
                     target_dest = st.selectbox("Pilih Target Destinasi:", st.session_state.favorit)
                     if target_dest in DESTINASI:
                         target_budget = DESTINASI[target_dest]["biaya_dasar_int"]
-                        st.markdown(f"**Target Dana (Estimasi):**<br><span style='font-size: 18px; color:#2e8b57; font-weight:bold;'>Rp {target_budget:,.0f}</span>", unsafe_allow_html=True)
+                        st.markdown(f"**Target Dana:**<br><span class='harga-text'>Rp {target_budget:,.0f}</span>", unsafe_allow_html=True)
                         bulan = st.slider("Target Berangkat (Bulan):", min_value=1, max_value=24, value=6)
                         tabungan_per_bulan = target_budget / bulan
                         st.success(f"Anda perlu menabung:\n\n**Rp {tabungan_per_bulan:,.0f} / bulan**")
                 else:
-                    st.warning("Tambahkan minimal 1 destinasi ke Favorit terlebih dahulu untuk menggunakan fitur ini.")
+                    st.warning("Tambahkan minimal 1 destinasi ke Favorit terlebih dahulu.")
 
+# --- ENTRY POINT UTAMA ---
 if not st.session_state.logged_in:
     halaman_login()
 else:
