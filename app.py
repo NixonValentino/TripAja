@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 from PIL import Image, ImageOps
 import os
 
@@ -11,7 +12,7 @@ st.markdown("""
     .block-container { padding-top: 2rem; }
     .harga-text { color: #2e8b57; font-size: 20px; font-weight: bold; }
     .harga-kecil { color: #2e8b57; font-size: 16px; font-weight: bold; margin-bottom: 0px;}
-    .stTabs [data-baseweb="tab-list"] { gap: 24px; }
+    .stTabs [data-baseweb="tab-list"] { gap: 16px; flex-wrap: wrap;}
     .stTabs [data-baseweb="tab"] { height: 50px; white-space: pre-wrap; background-color: transparent; border-radius: 4px 4px 0px 0px; padding: 10px 16px; font-weight: 600; }
     </style>
 """, unsafe_allow_html=True)
@@ -20,7 +21,7 @@ st.markdown("""
 def iconify(icon_name, color="#333", size=24):
     return f'<img src="https://api.iconify.design/{icon_name}.svg?color={color.replace("#", "%23")}" width="{size}" height="{size}" style="vertical-align: middle; margin-right: 8px;">'
 
-# --- DATABASE DESTINASI (DITAMBAH 3 WILAYAH & DATA ITINERARY) ---
+# --- DATABASE DESTINASI (BUG FIX: URL VIDEO ASLI & STABILISASI KOORDINAT) ---
 DESTINASI = {
     "Bali": {
         "highlight": "Pulau Dewata, menawarkan perpaduan sempurna pantai eksotis, pura kuno yang mistis, budaya kental, dan kehidupan malam modern.",
@@ -35,7 +36,10 @@ DESTINASI = {
             "Hari 1: Tiba di Ngurah Rai, Check-in Hotel, Sunset di Pantai Kuta & Makan Malam Seafood di Jimbaran.",
             "Hari 2: Eksplorasi Ubud (Monkey Forest, Tegalalang), Kunjungan ke Pura Tirta Empul.",
             "Hari 3: Perjalanan ke Nusa Penida (Kelingking Beach, Broken Beach), Kembali ke Bali & Belanja Oleh-oleh."
-        ]
+        ],
+        "koordinat": {"lat": [-8.409518], "lon": [115.188919]},
+        "waktu_terbaik": "April - Oktober (Musim Kemarau)",
+        "cuaca": "Tropis Cerah, 27°C - 30°C"
     },
     "Yogyakarta": {
         "highlight": "Pusat budaya Jawa dengan kemegahan sejarah Candi Borobudur, kehangatan Malioboro, dan kuliner legendaris.",
@@ -50,7 +54,10 @@ DESTINASI = {
             "Hari 1: Tiba di Stasiun/Bandara, Makan Gudeg Mbah Lindu, Jalan-jalan santai & Belanja di Malioboro.",
             "Hari 2: Sunrise di Candi Borobudur, Wisata VW Safari Magelang, Sore di Candi Prambanan.",
             "Hari 3: Kunjungan ke Keraton Yogyakarta & Tamansari, Beli Bakpia Pathok, Pulang."
-        ]
+        ],
+        "koordinat": {"lat": [-7.795580], "lon": [110.369490]},
+        "waktu_terbaik": "Mei - September",
+        "cuaca": "Hangat, 26°C - 32°C"
     },
     "Lombok": {
         "highlight": "Keindahan alam yang menenangkan, dengan Gunung Rinjani yang megah, tiga Gili mempesona, dan Sirkuit Mandalika.",
@@ -65,7 +72,10 @@ DESTINASI = {
             "Hari 1: Tiba di Bandara, Eksplorasi Sirkuit Mandalika & Bukit Merese, Check-in Hotel.",
             "Hari 2: Penyeberangan ke Gili Trawangan, Snorkeling Trip (Patung Bawah Laut), Bersepeda keliling pulau.",
             "Hari 3: Kunjungan ke Desa Adat Sade, Belanja Mutiara & Tenun Lombok, Persiapan Pulang."
-        ]
+        ],
+        "koordinat": {"lat": [-8.583333], "lon": [116.116667]},
+        "waktu_terbaik": "Juli - Agustus (Ideal untuk pendakian)",
+        "cuaca": "Tropis, 25°C - 31°C"
     },
     "Bandung": {
         "highlight": "Kota Kembang dengan udara sejuk, surga belanja, kuliner estetik, dan wisata alam pegunungan yang asri.",
@@ -75,12 +85,15 @@ DESTINASI = {
         "estimasi_biaya_katalog": "Rp 1.200.000 / org",
         "biaya_dasar_int": 1200000,
         "tiket_masuk_orang": 35000,
-        "video_url": "https://youtu.be/dummy_bandung", 
+        "video_url": "https://www.youtube.com/watch?v=F3zH94m9xBE", # Diganti dengan URL valid
         "itinerary": [
             "Hari 1: Tiba di Bandung, Wisata sejarah & ngopi di Jalan Braga, Makan malam di Puncak Ciumbuleuit (Punclut).",
             "Hari 2: Eksplorasi Lembang (Farmhouse / Floating Market), Interaksi dengan Rusa di Ranca Upas.",
             "Hari 3: Wisata Kawah Putih Ciwidey, Belanja di Cibaduyut / Factory Outlet, Kembali ke kota asal."
-        ]
+        ],
+        "koordinat": {"lat": [-6.917464], "lon": [107.619123]},
+        "waktu_terbaik": "Sepanjang Tahun (Hindari musim hujan ekstrim Des-Feb)",
+        "cuaca": "Sejuk Pegunungan, 20°C - 26°C"
     },
     "Surabaya": {
         "highlight": "Kota Pahlawan yang kaya nilai sejarah, tata kota modern, taman-taman asri, dan aneka kuliner khas Jawa Timur yang pedas & gurih.",
@@ -90,12 +103,15 @@ DESTINASI = {
         "estimasi_biaya_katalog": "Rp 1.400.000 / org",
         "biaya_dasar_int": 1400000,
         "tiket_masuk_orang": 25000,
-        "video_url": "https://youtu.be/dummy_surabaya",
+        "video_url": "https://www.youtube.com/watch?v=sY6BGVE-PBE", # Diganti dengan URL valid
         "itinerary": [
             "Hari 1: Tiba di Surabaya, Kunjungan ke Tugu Pahlawan & Museum 10 Nopember, Makan Siang Rujak Cingur.",
             "Hari 2: Menjelajahi Monumen Kapal Selam (Monkasel), Santai di Taman Bungkul, Perjalanan malam melewati Jembatan Suramadu.",
             "Hari 3: Beli oleh-oleh Spikoe Resep Kuno & Sambal Bu Rudy, Kuliner Lontong Balap, Pulang."
-        ]
+        ],
+        "koordinat": {"lat": [-7.250445], "lon": [112.768845]},
+        "waktu_terbaik": "Mei - November",
+        "cuaca": "Panas Kota, 28°C - 34°C"
     },
     "Papua": {
         "highlight": "Surga bahari Raja Ampat di ujung timur Indonesia dengan gugusan pulau karang karst mempesona dan keanekaragaman hayati bawah laut kelas dunia.",
@@ -105,12 +121,15 @@ DESTINASI = {
         "estimasi_biaya_katalog": "Rp 8.500.000 / org",
         "biaya_dasar_int": 8500000,
         "tiket_masuk_orang": 250000,
-        "video_url": "https://youtu.be/dummy_papua",
+        "video_url": "https://www.youtube.com/watch?v=379EEoRIbIs", # Diganti dengan URL valid
         "itinerary": [
             "Hari 1: Tiba di Sorong, Penyeberangan Kapal Feri ke Waisai (Raja Ampat), Check-in Resort/Homestay pinggir pantai.",
             "Hari 2: Trekking ke Puncak Piaynemo yang ikonik, Snorkeling di Arborek Village.",
             "Hari 3: Berenang bersama ikan Pari Manta di Manta Point, Menikmati sunset, Persiapan kembali ke Sorong."
-        ]
+        ],
+        "koordinat": {"lat": [-0.233333], "lon": [130.516667]},
+        "waktu_terbaik": "Oktober - April (Kondisi air terbaik untuk diving)",
+        "cuaca": "Tropis Lembab, 26°C - 31°C"
     }
 }
 
@@ -132,7 +151,6 @@ def tampilkan_gambar_rapi(path_gambar, target_width=800, target_height=450):
         except Exception:
             st.error(f"Gagal memuat {path_gambar}")
     else:
-        # Menampilkan placeholder warna abu-abu jika gambar belum dimasukkan pengguna
         st.markdown(f"<div style='width:100%; height:200px; background-color:#e0e0e0; border-radius:10px; display:flex; align-items:center; justify-content:center;'>📸 {path_gambar} (Belum Ditambahkan)</div>", unsafe_allow_html=True)
 
 # --- HALAMAN LOGIN ---
@@ -172,7 +190,6 @@ def render_dashboard_utama():
     
     hasil = {k: v for k, v in DESTINASI.items() if search_query.lower() in k.lower()} if search_query else DESTINASI
     
-    # Layout Grid (2 kolom) untuk Dashboard agar memuat lebih banyak destinasi
     col_kiri, col_kanan = st.columns(2)
     
     for i, (nama, info) in enumerate(hasil.items()):
@@ -197,9 +214,9 @@ def render_dashboard_utama():
                         if st.button(f"🤍 Simpan", key=f"fav_{nama}", use_container_width=True):
                             st.session_state.favorit.append(nama)
                             st.rerun()
-                st.write("") # Spacer bawah kartu
+                st.write("") 
 
-# --- HALAMAN DETAIL DESTINASI (DENGAN TABS) ---
+# --- HALAMAN DETAIL DESTINASI ---
 def render_halaman_detail(dest_name):
     dest = DESTINASI[dest_name]
 
@@ -211,22 +228,26 @@ def render_halaman_detail(dest_name):
     st.markdown(f"*{dest['highlight']}*")
     st.markdown("---")
 
-    # FITUR BARU: SISTEM TABS
-    tab_overview, tab_galeri, tab_itinerary, tab_kalkulator = st.tabs([
+    tab_overview, tab_galeri, tab_peta, tab_itinerary, tab_kalkulator, tab_ulasan = st.tabs([
         f"📝 Overview", 
         f"📸 Galeri Visual", 
-        f"🗺️ Rencana Perjalanan", 
-        f"🧮 Kalkulator Wisata"
+        f"🗺️ Peta Lokasi",
+        f"🧭 Itinerary", 
+        f"🧮 Kalkulator",
+        f"⭐ Ulasan"
     ])
 
-    # TAB 1: OVERVIEW
     with tab_overview:
         st.markdown(f"<h3>Tentang Destinasi</h3>", unsafe_allow_html=True)
         st.write(dest["deskripsi_lengkap"])
+        
+        with st.container(border=True):
+            st.markdown(f"**{iconify('mdi:calendar-check', color='#ff8c00')} Waktu Terbaik Berkunjung:** {dest['waktu_terbaik']}")
+            st.markdown(f"**{iconify('mdi:weather-partly-cloudy', color='#1e90ff')} Prakiraan Cuaca Umum:** {dest['cuaca']}")
+            
         st.markdown("<br>", unsafe_allow_html=True)
         st.video(dest["video_url"])
 
-    # TAB 2: GALERI
     with tab_galeri:
         gallery = dest["high_res_gallery"]
         num_photos = len(gallery)
@@ -246,7 +267,12 @@ def render_halaman_detail(dest_name):
                 st.session_state.gallery_index += 1
                 st.rerun()
 
-    # TAB 3: FITUR ITINERARY & CHECKLIST
+    with tab_peta:
+        st.markdown(f"<h3>Titik Koordinat {dest_name}</h3>", unsafe_allow_html=True)
+        st.markdown("Gunakan mouse Anda untuk memperbesar (*zoom*) atau menggeser peta di bawah ini.")
+        # BUG FIX: Menggunakan pandas DataFrame untuk menghindari error rendering peta di Streamlit
+        st.map(pd.DataFrame(dest["koordinat"]), zoom=8)
+
     with tab_itinerary:
         st.markdown(f"<h3>Rekomendasi Rencana Perjalanan (3 Hari)</h3>", unsafe_allow_html=True)
         for i, aktivitas in enumerate(dest["itinerary"]):
@@ -260,10 +286,9 @@ def render_halaman_detail(dest_name):
         st.checkbox("Kamera / Powerbank")
         st.checkbox("Uang Tunai Cukup")
 
-    # TAB 4: KALKULATOR
     with tab_kalkulator:
-        st.markdown("Fitur ini membantu Anda menghitung **estimasi biaya dasar** (tiket masuk rata-rata wisata utama) di destinasi ini sebelum berangkat.")
-        col_calc_input, col_calc_res = st.columns([1, 1])
+        st.markdown("Hitung **estimasi biaya dasar** tiket masuk berdasarkan jumlah rombongan Anda.")
+        col_calc_input, col_calc_res = st.columns([1, 1.5])
         with col_calc_input:
             with st.container(border=True):
                 jumlah_orang = st.number_input("Jumlah Rombongan (Orang):", min_value=1, value=2)
@@ -271,10 +296,57 @@ def render_halaman_detail(dest_name):
                 
         with col_calc_res:
             with st.container(border=True):
-                total_biaya = (jumlah_orang * dest['tiket_masuk_orang']) * jumlah_hari
+                total_biaya_idr = (jumlah_orang * dest['tiket_masuk_orang']) * jumlah_hari
+                
+                konversi = st.radio("Tampilkan dalam mata uang:", ["IDR (Rupiah)", "USD (Dolar AS)", "EUR (Euro)"], horizontal=True)
+                
                 st.markdown("Estimasi Total Biaya Tiket Dasar:")
-                st.markdown(f"<h2 class='harga-text'>Rp {total_biaya:,.0f}</h2>", unsafe_allow_html=True)
+                if konversi == "IDR (Rupiah)":
+                    st.markdown(f"<h2 class='harga-text'>Rp {total_biaya_idr:,.0f}</h2>", unsafe_allow_html=True)
+                elif konversi == "USD (Dolar AS)":
+                    usd = total_biaya_idr / 15500 
+                    st.markdown(f"<h2 class='harga-text'>$ {usd:,.2f}</h2>", unsafe_allow_html=True)
+                else:
+                    eur = total_biaya_idr / 16800
+                    st.markdown(f"<h2 class='harga-text'>€ {eur:,.2f}</h2>", unsafe_allow_html=True)
+                    
                 st.caption(f"*Asumsi tiket wisata rata-rata: Rp {dest['tiket_masuk_orang']:,}/orang/hari. (Belum termasuk tiket pesawat/hotel).")
+
+    with tab_ulasan:
+        st.markdown(f"<h3>Ulasan Pengunjung</h3>", unsafe_allow_html=True)
+        
+        kunci_ulasan = f"ulasan_db_{dest_name}"
+        if kunci_ulasan not in st.session_state:
+            st.session_state[kunci_ulasan] = [
+                {"user": "TravelerSejati", "rating": 5, "komen": f"{dest_name} sangat luar biasa! Pemandangannya bikin betah, rekomen banget buat liburan keluarga."},
+                {"user": "JalanJalanTerus", "rating": 4, "komen": "Overall bagus, tapi usahakan datang pagi hari supaya tidak terlalu ramai dan terik."}
+            ]
+            
+        for u in st.session_state[kunci_ulasan]:
+            with st.container(border=True):
+                st.markdown(f"**{u['user']}** {'⭐' * u['rating']}")
+                st.write(u['komen'])
+                
+        st.markdown("---")
+        st.markdown("**Berikan Ulasan Anda**")
+        
+        with st.form(f"form_ulasan_{dest_name}"):
+            rating_input = st.slider("Seberapa puas Anda dengan referensi destinasi ini?", 1, 5, 5)
+            komen_input = st.text_area("Tuliskan komentar atau pertanyaan Anda...")
+            submit_ulasan = st.form_submit_button("Kirim Ulasan")
+            
+            if submit_ulasan:
+                if komen_input.strip() == "":
+                    st.error("Komentar tidak boleh kosong!")
+                else:
+                    ulasan_baru = {
+                        "user": f"{st.session_state.username} (Anda)",
+                        "rating": rating_input,
+                        "komen": komen_input
+                    }
+                    st.session_state[kunci_ulasan].insert(0, ulasan_baru)
+                    st.success("Ulasan berhasil dikirim!")
+                    st.rerun()
 
 # --- ROUTING APLIKASI UTAMA ---
 def render_page_flow():
